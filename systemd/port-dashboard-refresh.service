@@ -1,0 +1,18 @@
+[Unit]
+Description=Refresh port dashboard data
+After=docker.service
+
+[Service]
+Type=oneshot
+User=benny
+Group=benny
+ExecStart=/home/benny/port-dashboard/scripts/refresh-data.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+

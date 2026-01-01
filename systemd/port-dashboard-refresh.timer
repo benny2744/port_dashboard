@@ -1,0 +1,14 @@
+[Unit]
+Description=Refresh port dashboard data hourly
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1h
+Unit=port-dashboard-refresh.service
+
+[Install]
+WantedBy=timers.target
+
+
+
+

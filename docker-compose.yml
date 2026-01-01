@@ -1,0 +1,12 @@
+services:
+  web:
+    image: nginx:alpine
+    container_name: port-dashboard
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:3005:80"
+    volumes:
+      - ./public:/usr/share/nginx/html:ro
+    labels:
+      - "com.docker.compose.project=port-dashboard"
+

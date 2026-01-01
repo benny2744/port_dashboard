@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Port Status Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;500;700&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e14;
+            --bg-secondary: #131920;
+            --bg-tertiary: #1a2129;
+            --text-primary: #e6e6e6;
+            --text-muted: #8a919a;
+            --accent-cyan: #39bae6;
+            --accent-green: #7fd962;
+            --accent-orange: #ff8f40;
+            --accent-purple: #d2a6ff;
+            --accent-red: #f07178;
+            --accent-yellow: #e6b450;
+            --border: #2a333d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans SC', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(ellipse at 20% 20%, rgba(57, 186, 230, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(210, 166, 255, 0.06) 0%, transparent 50%);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .meta {
+            text-align: right;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .meta .timestamp {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-cyan);
+        }
+
+        /* Instructions Panel */
+        .instructions {
+            background: linear-gradient(135deg, rgba(57, 186, 230, 0.1), rgba(210, 166, 255, 0.08));
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .instructions-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+        }
+
+        .instructions-header h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+        }
+
+        .instructions-header .icon {
+            font-size: 1.25rem;
+        }
+
+        .instructions-header .toggle {
+            margin-left: auto;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            transition: transform 0.2s;
+        }
+
+        .instructions.collapsed .toggle {
+            transform: rotate(-90deg);
+        }
+
+        .instructions.collapsed .instructions-content {
+            display: none;
+        }
+
+        .instructions-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .instructions-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .instructions-lang {
+            line-height: 1.7;
+        }
+
+        .instructions-lang h3 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .instructions-lang ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .instructions-lang li {
+            position: relative;
+            padding-left: 1.25rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .instructions-lang li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--accent-green);
+        }
+
+        .instructions-lang code {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-tertiary);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: var(--accent-yellow);
+        }
+
+        .instructions-lang .example {
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--accent-cyan);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+
+        .stat-card .label {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-card.docker .value { color: var(--accent-cyan); }
+        .stat-card.infra .value { color: var(--accent-green); }
+        .stat-card.webapp .value { color: var(--accent-purple); }
+        .stat-card.unknown .value { color: var(--accent-orange); }
+
+        .filters {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .filter-btn {
+            font-family: 'Outfit', sans-serif;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-muted);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.85rem;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--accent-cyan);
+            color: var(--text-primary);
+        }
+
+        .filter-btn.active {
+            background: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+            color: var(--bg-primary);
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+        }
+
+        .search-box::placeholder {
+            color: var(--text-muted);
+        }
+
+        .port-table {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .port-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .port-table th {
+            text-align: left;
+            padding: 1rem;
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+        }
+
+        .port-table td {
+            padding: 0.875rem 1rem;
+            border-top: 1px solid var(--border);
+            vertical-align: top;
+        }
+
+        .port-table tr:hover td {
+            background: rgba(57, 186, 230, 0.03);
+        }
+
+        .port-table tr.group-header {
+            cursor: pointer;
+        }
+
+        .port-table tr.group-header:hover td {
+            background: rgba(57, 186, 230, 0.08);
+        }
+
+        .port-table tr.group-child {
+            background: var(--bg-tertiary);
+        }
+
+        .port-table tr.group-child.hidden {
+            display: none;
+        }
+
+        .port-table tr.group-child td {
+            padding-left: 2.5rem;
+            font-size: 0.9rem;
+        }
+
+        .port-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .port-range {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .expand-icon {
+            display: inline-block;
+            width: 1.25rem;
+            color: var(--accent-cyan);
+            transition: transform 0.2s;
+        }
+
+        .expand-icon.expanded {
+            transform: rotate(90deg);
+        }
+
+        .port-count {
+            display: inline-block;
+            background: var(--accent-purple);
+            color: var(--bg-primary);
+            font-size: 0.7rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 10px;
+            margin-left: 0.5rem;
+            font-weight: 600;
+        }
+
+        .category-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            font-weight: 600;
+        }
+
+        .category-badge.docker {
+            background: rgba(57, 186, 230, 0.15);
+            color: var(--accent-cyan);
+        }
+
+        .category-badge.infrastructure {
+            background: rgba(127, 217, 98, 0.15);
+            color: var(--accent-green);
+        }
+
+        .category-badge.webapp {
+            background: rgba(210, 166, 255, 0.15);
+            color: var(--accent-purple);
+        }
+
+        .category-badge.kubernetes {
+            background: rgba(230, 180, 80, 0.15);
+            color: var(--accent-yellow);
+        }
+
+        .category-badge.unknown {
+            background: rgba(255, 143, 64, 0.15);
+            color: var(--accent-orange);
+        }
+
+        .app-name {
+            font-weight: 500;
+        }
+
+        .container-name {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .protocol {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--accent-green);
+        }
+
+        .bind {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 4rem;
+            color: var(--text-muted);
+        }
+
+        .loading .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        /* Port blocks legend */
+        .legend {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        .legend h3 {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+        }
+
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .legend-item .range {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-cyan);
+            font-size: 0.8rem;
+        }
+
+        .legend-item.taken {
+            opacity: 0.5;
+        }
+
+        .legend-item.taken .range {
+            text-decoration: line-through;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ Port Status Dashboard</h1>
+            <div class="meta">
+                <div>Last updated</div>
+                <div class="timestamp" id="timestamp">Loading...</div>
+            </div>
+        </header>
+
+        <!-- Instructions Panel -->
+        <div class="instructions" id="instructions">
+            <div class="instructions-header" onclick="toggleInstructions()">
+                <span class="icon">📋</span>
+                <h2>Port Allocation Rules / 端口分配规则</h2>
+                <span class="toggle">▼</span>
+            </div>
+            <div class="instructions-content">
+                <div class="instructions-lang">
+                    <h3>English</h3>
+                    <ul>
+                        <li>New dev servers must use ports in the <code>4000</code> range</li>
+                        <li>Each application is allocated a block of <code>10 ports</code></li>
+                        <li>Increment by 10 for each new app (e.g., 4010, 4020, 4030...)</li>
+                        <li>Keep <strong>all services</strong> for one app within its 10-port block</li>
+                        <li>Main gateway/frontend uses <code>x0</code>, backend/API uses <code>x1</code>, database uses <code>x2</code>, etc.</li>
+                        <li>Check the table below for available port blocks before deploying</li>
+                    </ul>
+                    <div class="example">
+                        Example: Debate App → 4010 (frontend), 4011 (API), 4012 (DB)
+                    </div>
+                </div>
+                <div class="instructions-lang">
+                    <h3>中文</h3>
+                    <ul>
+                        <li>新开发服务器必须使用 <code>4000</code> 端口段</li>
+                        <li>每个应用分配 <code>10 个端口</code> 的区块</li>
+                        <li>每个新应用递增 10（如 4010、4020、4030...）</li>
+                        <li>一个应用的<strong>所有服务</strong>必须在其 10 端口区块内</li>
+                        <li>主网关/前端用 <code>x0</code>，后端/API 用 <code>x1</code>，数据库用 <code>x2</code>，依此类推</li>
+                        <li>部署前请查看下表确认可用端口区块</li>
+                    </ul>
+                    <div class="example">
+                        示例：辩论计时器 → 4010（前端）、4011（API）、4012（数据库）
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-grid" id="stats">
+            <div class="stat-card docker">
+                <div class="label">Docker Containers</div>
+                <div class="value" id="stat-docker">-</div>
+            </div>
+            <div class="stat-card infra">
+                <div class="label">Infrastructure</div>
+                <div class="value" id="stat-infra">-</div>
+            </div>
+            <div class="stat-card webapp">
+                <div class="label">Web Apps</div>
+                <div class="value" id="stat-webapp">-</div>
+            </div>
+            <div class="stat-card unknown">
+                <div class="label">Unidentified</div>
+                <div class="value" id="stat-unknown">-</div>
+            </div>
+        </div>
+
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="docker">Docker</button>
+            <button class="filter-btn" data-filter="infrastructure">Infrastructure</button>
+            <button class="filter-btn" data-filter="webapp">Web Apps</button>
+            <button class="filter-btn" data-filter="kubernetes">Kubernetes</button>
+            <button class="filter-btn" data-filter="unknown">Unknown</button>
+            <input type="text" class="search-box" placeholder="Search port or app..." id="search">
+        </div>
+
+        <div class="port-table" id="port-table">
+            <div class="loading">
+                <div class="spinner"></div>
+                <div>Loading port data...</div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <h3>Reserved Port Blocks (4000 range) / 已预留端口区块</h3>
+            <div class="legend-grid" id="legend-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        const portBlocks = {
+            "4010-4019": "Debate Timer / 辩论计时器",
+            "4020-4029": "Timer App / 定时器",
+            "4030-4039": "Test Schedule / 考试安排",
+            "4040-4049": "Dify LLM / Dify 大模型",
+            "4050-4059": "Participation Tracker / 参与度追踪",
+            "4060-4069": "Feedback App / 反馈系统",
+            "4070-4079": "Video Compressor / 视频压缩",
+            "4080-4089": "Capstone / 毕业设计",
+            "4090-4099": "ClassChat / 班级聊天",
+            "4100-4109": "Grading App / 评分系统",
+            "4110-4119": "HR Game / 人力资源游戏",
+            "4120-4129": "n8n / 自动化平台",
+            "4130-4139": "EduCore / 教育核心",
+            "4140-4149": "Self-Study Guidance / 学会学习",
+            "4150-4159": "Verdaccio / NPM 仓库",
+            "4160-4169": "Chat/RocketChat / 聊天服务"
+        };
+
+        let allPorts = [];
+        let currentFilter = 'all';
+        let expandedGroups = new Set();
+
+        function toggleInstructions() {
+            document.getElementById('instructions').classList.toggle('collapsed');
+        }
+
+        async function loadData() {
+            try {
+                const res = await fetch('ports.json?' + Date.now());
+                const data = await res.json();
+                
+                document.getElementById('timestamp').textContent = 
+                    new Date(data.generated).toLocaleString();
+                
+                allPorts = data.ports;
+                
+                // Update stats
+                const counts = {docker: 0, infrastructure: 0, webapp: 0, kubernetes: 0, unknown: 0};
+                allPorts.forEach(p => {
+                    if (counts[p.category] !== undefined) counts[p.category]++;
+                });
+                
+                document.getElementById('stat-docker').textContent = counts.docker;
+                document.getElementById('stat-infra').textContent = counts.infrastructure;
+                document.getElementById('stat-webapp').textContent = counts.webapp;
+                document.getElementById('stat-unknown').textContent = counts.unknown + counts.kubernetes;
+                
+                renderTable();
+                renderLegend();
+            } catch (err) {
+                document.getElementById('port-table').innerHTML = 
+                    `<div class="empty">Failed to load port data. Run the refresh script first.</div>`;
+            }
+        }
+
+        // Group ports by 10-port block (e.g., 4060-4069 all go together)
+        function groupPorts(ports) {
+            const blockMap = new Map();
+
+            // First pass: group all ports by their 10-port block
+            for (const p of ports) {
+                const blockStart = Math.floor(p.port / 10) * 10;
+                const groupKey = `block-${blockStart}`;
+                
+                if (!blockMap.has(groupKey)) {
+                    blockMap.set(groupKey, {
+                        key: groupKey,
+                        blockStart: blockStart,
+                        app: p.app || p.service || 'Unknown',
+                        category: p.category,
+                        ports: []
+                    });
+                }
+                blockMap.get(groupKey).ports.push(p);
+            }
+
+            // Convert to array and determine which should be grouped
+            const groups = [];
+            for (const [key, group] of blockMap) {
+                if (group.ports.length > 1) {
+                    // Multiple ports in same block - keep as group
+                    // Use most common app name
+                    const appCounts = {};
+                    group.ports.forEach(p => {
+                        const app = p.app || p.service || 'Unknown';
+                        appCounts[app] = (appCounts[app] || 0) + 1;
+                    });
+                    group.app = Object.entries(appCounts).sort((a, b) => b[1] - a[1])[0][0];
+                    groups.push(group);
+                } else {
+                    // Single port - add as individual entry
+                    groups.push({
+                        key: key,
+                        app: group.app,
+                        category: group.category,
+                        ports: group.ports,
+                        isSingle: true
+                    });
+                }
+            }
+
+            // Sort by first port in each group
+            groups.sort((a, b) => a.ports[0].port - b.ports[0].port);
+
+            return groups;
+        }
+
+        function toggleGroup(groupKey) {
+            if (expandedGroups.has(groupKey)) {
+                expandedGroups.delete(groupKey);
+            } else {
+                expandedGroups.add(groupKey);
+            }
+            renderTable();
+        }
+
+        function renderTable() {
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            
+            let filtered = allPorts.filter(p => {
+                if (currentFilter !== 'all' && p.category !== currentFilter) return false;
+                if (searchTerm) {
+                    const haystack = `${p.port} ${p.app || ''} ${p.docker?.container || ''} ${p.service || ''}`.toLowerCase();
+                    if (!haystack.includes(searchTerm)) return false;
+                }
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                document.getElementById('port-table').innerHTML = 
+                    `<div class="empty">No ports match the current filter.</div>`;
+                return;
+            }
+
+            // Group the ports
+            const groups = groupPorts(filtered);
+
+            let html = `<table>
+                <thead>
+                    <tr>
+                        <th>Port</th>
+                        <th>Category</th>
+                        <th>App / Service</th>
+                        <th>Protocol</th>
+                        <th>Bind Address</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+            for (const group of groups) {
+                if (group.isSingle) {
+                    // Single port - render normally
+                    const p = group.ports[0];
+                    const container = p.docker?.container || '';
+                    const project = p.docker?.project || '';
+                    
+                    html += `<tr>
+                        <td><span class="port-num">${p.port}</span></td>
+                        <td><span class="category-badge ${p.category}">${p.category}</span></td>
+                        <td>
+                            <div class="app-name">${p.app || p.service || 'Unknown'}</div>
+                            ${container ? `<div class="container-name">${container}${project ? ` (${project})` : ''}</div>` : ''}
+                        </td>
+                        <td><span class="protocol">${p.protocols.join(', ')}</span></td>
+                        <td>
+                            <span class="bind">${p.binds.slice(0, 2).join('<br>')}</span>
+                            ${p.bind_count > 2 ? `<span class="bind"><br>+${p.bind_count - 2} more</span>` : ''}
+                        </td>
+                    </tr>`;
+                } else {
+                    // Multiple ports in same 10-port block - render as expandable group
+                    const isExpanded = expandedGroups.has(group.key);
+                    const blockStart = group.blockStart;
+                    const blockEnd = blockStart + 9;
+                    const portList = group.ports.map(p => p.port).join(', ');
+                    const allProtocols = [...new Set(group.ports.flatMap(p => p.protocols))];
+                    
+                    html += `<tr class="group-header" onclick="toggleGroup('${group.key}')">
+                        <td>
+                            <span class="expand-icon ${isExpanded ? 'expanded' : ''}">▶</span>
+                            <span class="port-range">${blockStart}-${blockEnd}</span>
+                            <span class="port-count">${group.ports.length} used</span>
+                        </td>
+                        <td><span class="category-badge ${group.category}">${group.category}</span></td>
+                        <td>
+                            <div class="app-name">${group.app}</div>
+                            <div class="container-name">Ports: ${portList}</div>
+                        </td>
+                        <td><span class="protocol">${allProtocols.join(', ')}</span></td>
+                        <td><span class="bind">Click to expand</span></td>
+                    </tr>`;
+
+                    // Child rows
+                    for (const p of group.ports) {
+                        const container = p.docker?.container || '';
+                        const project = p.docker?.project || '';
+                        
+                        html += `<tr class="group-child ${isExpanded ? '' : 'hidden'}">
+                            <td><span class="port-num">${p.port}</span></td>
+                            <td></td>
+                            <td>
+                                ${container ? `<div class="container-name">${container}${project ? ` (${project})` : ''}</div>` : `<div class="container-name">-</div>`}
+                            </td>
+                            <td><span class="protocol">${p.protocols.join(', ')}</span></td>
+                            <td>
+                                <span class="bind">${p.binds.slice(0, 2).join('<br>')}</span>
+                                ${p.bind_count > 2 ? `<span class="bind"><br>+${p.bind_count - 2} more</span>` : ''}
+                            </td>
+                        </tr>`;
+                    }
+                }
+            }
+
+            html += '</tbody></table>';
+            document.getElementById('port-table').innerHTML = html;
+        }
+
+        function renderLegend() {
+            const grid = document.getElementById('legend-grid');
+            const usedBlocks = new Set();
+            
+            // Find which blocks are in use
+            allPorts.forEach(p => {
+                if (p.port >= 4000 && p.port < 5000) {
+                    const blockStart = Math.floor(p.port / 10) * 10;
+                    usedBlocks.add(`${blockStart}-${blockStart + 9}`);
+                }
+            });
+
+            grid.innerHTML = Object.entries(portBlocks).map(([range, name]) => {
+                const isTaken = usedBlocks.has(range);
+                return `<div class="legend-item ${isTaken ? 'taken' : ''}">
+                    <span class="range">${range}</span>
+                    <span>${name} ${isTaken ? '✓' : ''}</span>
+                </div>`;
+            }).join('');
+        }
+
+        // Event listeners
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                renderTable();
+            });
+        });
+
+        document.getElementById('search').addEventListener('input', renderTable);
+
+        // Load data
+        loadData();
+
+        // Auto-refresh every 5 minutes
+        setInterval(loadData, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
