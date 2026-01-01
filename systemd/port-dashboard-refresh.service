@@ -1,12 +1,12 @@
 [Unit]
 Description=Refresh port dashboard data
 After=docker.service
+Requires=docker.service
 
 [Service]
 Type=oneshot
-User=benny
-Group=benny
-ExecStart=/home/benny/port-dashboard/scripts/refresh-data.sh
+EnvironmentFile=/etc/default/port-dashboard
+ExecStart=/usr/bin/bash -lc '${PORT_DASHBOARD_DIR}/scripts/refresh-data.sh'
 StandardOutput=journal
 StandardError=journal
 

@@ -28,6 +28,7 @@ echo ""
 echo "=== Systemd Timer Installation ==="
 echo "Run these commands with sudo to enable hourly refresh:"
 echo ""
+echo "  echo \"PORT_DASHBOARD_DIR=${SCRIPT_DIR}\" | sudo tee /etc/default/port-dashboard >/dev/null"
 echo "  sudo cp ${SCRIPT_DIR}/systemd/port-dashboard-refresh.service /etc/systemd/system/"
 echo "  sudo cp ${SCRIPT_DIR}/systemd/port-dashboard-refresh.timer /etc/systemd/system/"
 echo "  sudo systemctl daemon-reload"
@@ -46,7 +47,7 @@ fi
 echo ""
 echo "=== Done ==="
 echo "Access the dashboard at: http://127.0.0.1:3005/"
-echo "Or via nginx at: http://hsapp.yungu.org/ports/ (after nginx config)"
+echo "Or via your reverse proxy at: /ports/ (after nginx config)"
 
 
 

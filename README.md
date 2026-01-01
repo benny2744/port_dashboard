@@ -6,6 +6,7 @@ A real-time web dashboard for monitoring listening ports on your system, with au
 
 - 🔍 **Automatic Port Scanning**: Scans all listening ports using `ss` command
 - 🐳 **Docker Integration**: Automatically correlates ports with Docker containers
+- ☁️ **Cloudflared Integration**: Parses Cloudflared `ingress` routes to show tunnel origin ports (even if not exposed on the host)
 - 📊 **Visual Dashboard**: Beautiful, modern web interface with filtering and search
 - 🔄 **Auto-Refresh**: Hourly updates via systemd timer
 - 📋 **Port Allocation Management**: Tracks reserved port blocks (4000 range) for application deployment
@@ -50,6 +51,7 @@ The setup script will:
 ```bash
 sudo cp systemd/port-dashboard-refresh.service /etc/systemd/system/
 sudo cp systemd/port-dashboard-refresh.timer /etc/systemd/system/
+echo "PORT_DASHBOARD_DIR=/absolute/path/to/port_dashboard" | sudo tee /etc/default/port-dashboard >/dev/null
 sudo systemctl daemon-reload
 sudo systemctl enable --now port-dashboard-refresh.timer
 ```
@@ -60,7 +62,7 @@ sudo systemctl enable --now port-dashboard-refresh.timer
 
 After setup, access the dashboard at:
 - **Direct**: http://127.0.0.1:3005/
-- **Via Nginx** (if configured): http://hsapp.yungu.org/ports/
+- **Via reverse proxy** (optional): `http://your-domain.example/ports/`
 
 ### Manual Data Refresh
 
@@ -93,29 +95,22 @@ The dashboard helps manage port allocation for development servers:
 
 ### Reserved Port Blocks
 
+Reserved blocks are configured per-server in `config/port-dashboard.json` (this file is gitignored).
+Copy `config/port-dashboard.example.json` and customize it for your environment.
+
+Example:
+
 | Port Range | Application |
 |------------|-------------|
-| 4010-4019 | Debate Timer / 辩论计时器 |
-| 4020-4029 | Timer App / 定时器 |
-| 4030-4039 | Test Schedule / 考试安排 |
-| 4040-4049 | Dify LLM / Dify 大模型 |
-| 4050-4059 | Participation Tracker / 参与度追踪 |
-| 4060-4069 | Feedback App / 反馈系统 |
-| 4070-4079 | Video Compressor / 视频压缩 |
-| 4080-4089 | Capstone / 毕业设计 |
-| 4090-4099 | ClassChat / 班级聊天 |
-| 4100-4109 | Grading App / 评分系统 |
-| 4110-4119 | HR Game / 人力资源游戏 |
-| 4120-4129 | n8n / 自动化平台 |
-| 4130-4139 | EduCore / 教育核心 |
-| 4140-4149 | Self-Study Guidance / 学会学习 |
-| 4150-4159 | Verdaccio / NPM 仓库 |
-| 4160-4169 | Chat/RocketChat / 聊天服务 |
+| 4010-4019  | example-app-a |
+| 4020-4029  | example-app-b |
 
 ## Project Structure
 
 ```
 port-dashboard/
+├── config/
+│   └── port-dashboard.example.json   # Example per-server config (copy to port-dashboard.json)
 ├── docker-compose.yml          # Docker Compose configuration
 ├── ports.nginx.conf            # Nginx reverse proxy config
 ├── setup.sh                    # Installation script
@@ -126,7 +121,7 @@ port-dashboard/
 │   └── port-dashboard-refresh.timer    # Systemd timer unit
 └── public/
     ├── index.html              # Dashboard web interface
-    └── ports.json              # Generated port data (auto-generated)
+    └── ports.json              # Generated port data (auto-generated, gitignored)
 ```
 
 ## How It Works
@@ -150,9 +145,14 @@ port-dashboard/
 
 ### Customizing Port Blocks
 
-Edit `scripts/refresh-data.sh` to modify:
-- Known service definitions (lines 82-98)
-- Port block assignments (lines 101-118)
+Create `config/port-dashboard.json` to match this server (copy from `config/port-dashboard.example.json`):
+
+- **`scan.min_port`**: Minimum port to include in the dashboard (set to `0` to show everything).
+  - You can also override this at runtime with `MIN_PORT`, e.g. `MIN_PORT=3000 ./scripts/refresh-data.sh`
+- **`cloudflared.config_path`**: Path to a Cloudflared config (`config.yml`) to parse `ingress` routes and show their local origin ports.
+- **`reserved_port_blocks`**: Reserved 10-port blocks for your apps, e.g. `"4020-4029": "example-app"`
+
+If you want to tweak built-in service labels, edit the `known_services` mapping in `scripts/refresh-data.sh`.
 
 ### Changing Port
 

@@ -212,6 +212,7 @@
         .stat-card.infra .value { color: var(--accent-green); }
         .stat-card.webapp .value { color: var(--accent-purple); }
         .stat-card.unknown .value { color: var(--accent-orange); }
+        .stat-card.cloudflared .value { color: var(--accent-red); }
 
         .filters {
             display: flex;
@@ -383,6 +384,11 @@
             color: var(--accent-yellow);
         }
 
+        .category-badge.cloudflared {
+            background: rgba(240, 113, 120, 0.15);
+            color: var(--accent-red);
+        }
+
         .category-badge.unknown {
             background: rgba(255, 143, 64, 0.15);
             color: var(--accent-orange);
@@ -543,6 +549,10 @@
                 <div class="label">Web Apps</div>
                 <div class="value" id="stat-webapp">-</div>
             </div>
+            <div class="stat-card cloudflared">
+                <div class="label">Cloudflared Routes</div>
+                <div class="value" id="stat-cloudflared">-</div>
+            </div>
             <div class="stat-card unknown">
                 <div class="label">Unidentified</div>
                 <div class="value" id="stat-unknown">-</div>
@@ -554,6 +564,7 @@
             <button class="filter-btn" data-filter="docker">Docker</button>
             <button class="filter-btn" data-filter="infrastructure">Infrastructure</button>
             <button class="filter-btn" data-filter="webapp">Web Apps</button>
+            <button class="filter-btn" data-filter="cloudflared">Cloudflared</button>
             <button class="filter-btn" data-filter="kubernetes">Kubernetes</button>
             <button class="filter-btn" data-filter="unknown">Unknown</button>
             <input type="text" class="search-box" placeholder="Search port or app..." id="search">
@@ -567,31 +578,13 @@
         </div>
 
         <div class="legend">
-            <h3>Reserved Port Blocks (4000 range) / 已预留端口区块</h3>
+            <h3>Reserved Port Blocks / 已预留端口区块</h3>
             <div class="legend-grid" id="legend-grid"></div>
         </div>
     </div>
 
     <script>
-        const portBlocks = {
-            "4010-4019": "Debate Timer / 辩论计时器",
-            "4020-4029": "Timer App / 定时器",
-            "4030-4039": "Test Schedule / 考试安排",
-            "4040-4049": "Dify LLM / Dify 大模型",
-            "4050-4059": "Participation Tracker / 参与度追踪",
-            "4060-4069": "Feedback App / 反馈系统",
-            "4070-4079": "Video Compressor / 视频压缩",
-            "4080-4089": "Capstone / 毕业设计",
-            "4090-4099": "ClassChat / 班级聊天",
-            "4100-4109": "Grading App / 评分系统",
-            "4110-4119": "HR Game / 人力资源游戏",
-            "4120-4129": "n8n / 自动化平台",
-            "4130-4139": "EduCore / 教育核心",
-            "4140-4149": "Self-Study Guidance / 学会学习",
-            "4150-4159": "Verdaccio / NPM 仓库",
-            "4160-4169": "Chat/RocketChat / 聊天服务"
-        };
-
+        let portBlocks = {};
         let allPorts = [];
         let currentFilter = 'all';
         let expandedGroups = new Set();
@@ -608,10 +601,13 @@
                 document.getElementById('timestamp').textContent = 
                     new Date(data.generated).toLocaleString();
                 
+                // Load port blocks from JSON data
+                portBlocks = data.port_blocks || {};
+                
                 allPorts = data.ports;
                 
                 // Update stats
-                const counts = {docker: 0, infrastructure: 0, webapp: 0, kubernetes: 0, unknown: 0};
+                const counts = {docker: 0, infrastructure: 0, webapp: 0, kubernetes: 0, unknown: 0, cloudflared: 0};
                 allPorts.forEach(p => {
                     if (counts[p.category] !== undefined) counts[p.category]++;
                 });
@@ -619,6 +615,7 @@
                 document.getElementById('stat-docker').textContent = counts.docker;
                 document.getElementById('stat-infra').textContent = counts.infrastructure;
                 document.getElementById('stat-webapp').textContent = counts.webapp;
+                document.getElementById('stat-cloudflared').textContent = data.summary?.cloudflared_routes ?? 0;
                 document.getElementById('stat-unknown').textContent = counts.unknown + counts.kubernetes;
                 
                 renderTable();
@@ -694,9 +691,16 @@
             const searchTerm = document.getElementById('search').value.toLowerCase();
             
             let filtered = allPorts.filter(p => {
-                if (currentFilter !== 'all' && p.category !== currentFilter) return false;
+                if (currentFilter !== 'all') {
+                    if (currentFilter === 'cloudflared') {
+                        if (!p.cloudflared || p.cloudflared.length === 0) return false;
+                    } else if (p.category !== currentFilter) {
+                        return false;
+                    }
+                }
                 if (searchTerm) {
-                    const haystack = `${p.port} ${p.app || ''} ${p.docker?.container || ''} ${p.service || ''}`.toLowerCase();
+                    const cloudflaredText = (p.cloudflared || []).map(r => `${r.hostname || ''} ${r.path || ''}`).join(' ');
+                    const haystack = `${p.port} ${p.app || ''} ${p.docker?.container || ''} ${p.service || ''} ${cloudflaredText}`.toLowerCase();
                     if (!haystack.includes(searchTerm)) return false;
                 }
                 return true;
@@ -736,6 +740,7 @@
                         <td>
                             <div class="app-name">${p.app || p.service || 'Unknown'}</div>
                             ${container ? `<div class="container-name">${container}${project ? ` (${project})` : ''}</div>` : ''}
+                            ${p.cloudflared ? `<div class="container-name">cloudflared: ${p.cloudflared.map(r => `${r.hostname || ''}${r.path || ''}`).filter(Boolean).join(', ')}</div>` : ''}
                         </td>
                         <td><span class="protocol">${p.protocols.join(', ')}</span></td>
                         <td>
@@ -797,13 +802,17 @@
             
             // Find which blocks are in use
             allPorts.forEach(p => {
-                if (p.port >= 4000 && p.port < 5000) {
-                    const blockStart = Math.floor(p.port / 10) * 10;
-                    usedBlocks.add(`${blockStart}-${blockStart + 9}`);
-                }
+                const blockStart = Math.floor(p.port / 10) * 10;
+                usedBlocks.add(`${blockStart}-${blockStart + 9}`);
             });
 
-            grid.innerHTML = Object.entries(portBlocks).map(([range, name]) => {
+            const entries = Object.entries(portBlocks);
+            if (entries.length === 0) {
+                grid.innerHTML = `<div class="empty">No reserved port blocks configured.</div>`;
+                return;
+            }
+
+            grid.innerHTML = entries.map(([range, name]) => {
                 const isTaken = usedBlocks.has(range);
                 return `<div class="legend-item ${isTaken ? 'taken' : ''}">
                     <span class="range">${range}</span>

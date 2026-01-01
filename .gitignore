@@ -29,3 +29,15 @@ Thumbs.db
 *.tmp
 *.bak
 
+# Generated dashboard data (system-specific)
+public/ports.json
+
+# Local/server-specific configuration (copy from config/port-dashboard.example.json)
+config/port-dashboard.json
+config/*.local.json
+config/*.local.yml
+
+# Local systemd overrides (optional)
+systemd/*.local
+systemd/*.generated
+

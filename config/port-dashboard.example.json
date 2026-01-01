@@ -1,0 +1,13 @@
+{
+  "scan": {
+    "min_port": 0
+  },
+  "cloudflared": {
+    "config_path": "/etc/cloudflared/config.yml"
+  },
+  "reserved_port_blocks": {
+    "4010-4019": "example-app-a",
+    "4020-4029": "example-app-b"
+  }
+}
+
