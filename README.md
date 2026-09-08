@@ -61,8 +61,10 @@ sudo systemctl enable --now port-dashboard-refresh.timer
 ### Access the Dashboard
 
 After setup, access the dashboard at:
-- **Direct**: http://127.0.0.1:3005/
-- **Via reverse proxy** (optional): `http://your-domain.example/ports/`
+- **Public (this host)**: https://hsapp.yungu.org/ports/
+- **Loopback** (Caddy upstream): http://127.0.0.1:3005/
+
+Compose binds `127.0.0.1:3005` only — do not publish `:3005` on the LAN.
 
 ### Manual Data Refresh
 
@@ -159,7 +161,7 @@ If you want to tweak built-in service labels, edit the `known_services` mapping 
 To change the dashboard's listening port, edit `docker-compose.yml`:
 ```yaml
 ports:
-  - "0.0.0.0:YOUR_PORT:80"
+  - "127.0.0.1:YOUR_PORT:80"
 ```
 
 ### Nginx Reverse Proxy
