@@ -170,6 +170,16 @@ The `ports.nginx.conf` file can be included in your main Nginx configuration to 
 
 ## Troubleshooting
 
+### 403 Forbidden from nginx
+- The `public/` directory is bind-mounted into the container; the nginx worker
+  needs world-read on everything it serves.
+- Files created here used to inherit a restrictive default ACL
+  (`default:other::---`). This is fixed (`d:o::r-x` on `.` and `public/`), and
+  the hourly refresh script re-applies `chmod 644` to `index.html` and
+  `ports.json` as a safety net.
+- If you manually replace `public/index.html` and get a 403:
+  `chmod 644 public/index.html`
+
 ### Dashboard shows "Failed to load port data"
 - Run `./scripts/refresh-data.sh` manually to generate the data file
 - Check file permissions: `chmod 644 public/ports.json`

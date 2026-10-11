@@ -453,6 +453,7 @@ PYTHON
 
 # Make output files readable by nginx container
 chmod 644 "${DATA_FILE}"
+chmod 644 "${OUTPUT_DIR}/index.html" 2>/dev/null || true
 
 echo "Data refreshed at $(date)"
 
